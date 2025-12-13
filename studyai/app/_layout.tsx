@@ -29,6 +29,10 @@ export default function RootLayout() {
             ),
           }}
         />
+         <Stack.Screen
+  name="home"
+  options={{ headerShown: false }}
+/>
 
         {/* Inner screens */}
         <Stack.Screen name="summary" options={{ title: "Summary" }} />

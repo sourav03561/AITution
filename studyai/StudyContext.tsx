@@ -4,7 +4,8 @@ import { Platform } from "react-native";
 
 // Backend base URL
 export const BASE_URL = Platform.select({
-  web: "http://127.0.0.1:8000", // browser
+  web: "http://127.0.0.1:8000",
+ // browser
   // 🔁 replace with your machine IP on Wi-Fi (e.g. 192.168.1.2)
   default: "http://192.168.1.6:8000", // device / simulator
 });

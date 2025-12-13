@@ -138,11 +138,13 @@ Schema:
 }}
 
 Rules:
-- key_topics: 3–8 concise topic tags.
-- key_points: 5–8 short, concrete bullets.
+- key_topics: 8–12 concise topic tags.
+- key_points: 8–15 short, concrete bullets.
 - Avoid duplicates and empty strings.
 - Each quiz question: 3–5 options, exactly one correct.
 - Difficulty: medium by default.
+- Generate 20–30 quiz questions.
+- Generate at least 25 flashcards. Prefer 30–50 if content is long.
 
 Topic hint: {topic or "none"}
 

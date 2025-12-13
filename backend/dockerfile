@@ -1,0 +1,48 @@
+# ============================
+# AITution Backend Dockerfile
+# ============================
+FROM python:3.11-slim
+
+ENV PYTHONUNBUFFERED=1
+
+# ----------------------------
+# System dependencies
+# ----------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tesseract-ocr \
+    graphviz \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 libxext6 libxrender1 \
+    libjpeg-dev zlib1g-dev \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ----------------------------
+# Workdir
+# ----------------------------
+WORKDIR /app
+
+# ----------------------------
+# Install Python deps first
+# ----------------------------
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# ----------------------------
+# Copy source
+# ----------------------------
+COPY . .
+
+# ----------------------------
+# Expose internal port
+# ----------------------------
+EXPOSE 8000
+
+# ----------------------------
+# Start Gunicorn
+# ----------------------------
+CMD ["gunicorn", "-b", "0.0.0.0:8000", "--workers", "4", "--timeout", "600", "app:app"]

@@ -1,10 +1,11 @@
-flask
+Flask
 flask-cors
 python-dotenv
-pymupdf
-pillow
+Pillow
 pytesseract
+PyMuPDF
 google-genai
 requests
-graphviz
 supabase
+graphviz
+gunicorn

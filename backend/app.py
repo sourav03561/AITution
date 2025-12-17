@@ -1575,19 +1575,30 @@ def user_dashboard(user_id):
 
     try:
         qp = (
-            supabase.table("quiz_performance")
-            .select(
-                "material_id, created_at, attempt_no, "
-                "correct_answers, wrong_answers, skipped"
-            )
-            .eq("user_id", user_id)
-            .order("created_at", desc=False)
-            .execute()
+    supabase.table("quiz_performance")
+    .select(
+        """
+        material_id,
+        created_at,
+        attempt_no,
+        correct_answers,
+        wrong_answers,
+        skipped,
+        study_materials!quiz_performance_material_id_fkey (
+            source_name
         )
+        """
+    )
+    .eq("user_id", user_id)
+    .order("created_at", desc=False)
+    .execute()
+)
+
+         
     except Exception as e:
         print("user_dashboard supabase error:", e)
         return jsonify({"error": "Database error"}), 500
-
+    print("Quiz performance response:", qp)
     rows = getattr(qp, "data", []) or []
     if not rows:
         # empty skeleton response
@@ -1622,7 +1633,10 @@ def user_dashboard(user_id):
     for row in rows:
         mid = row["material_id"]
         material_ids.add(mid)
-
+        material_name = None
+        sm = row.get("study_materials")
+        if isinstance(sm, dict):
+          material_name = sm.get("source_name")[:15]
         correct = int(row.get("correct_answers") or 0)
         wrong = int(row.get("wrong_answers") or 0)
         skipped = int(row.get("skipped") or 0)
@@ -1657,11 +1671,13 @@ def user_dashboard(user_id):
         d["attempts"] += 1
         d["sum_accuracy_frac"] += accuracy_frac
         d["sum_score"] += score
+        print("Row material:", row.get("study_materials"))
 
         attempts_out.append(
             {
                 "attempt_no": int(row.get("attempt_no") or 0),
                 "material_id": mid,
+                "material_name": material_name or "Untitled Material",
                 "created_at": created_at,
                 "score": score,
                 "total_questions": total_q,

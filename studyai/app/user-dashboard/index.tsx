@@ -7,12 +7,14 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  Pressable
 } from "react-native";
 import { useStudy, BASE_URL } from "../../StudyContext";
+import { Feather } from "@expo/vector-icons";
 
 // charts
 import { LineChart, BarChart } from "react-native-gifted-charts";
-
+import { useRouter } from "expo-router";
 type Summary = {
   total_attempts: number;
   distinct_materials: number;
@@ -33,6 +35,7 @@ type AttemptRow = {
   correct: number;
   wrong: number;
   skipped: number;
+  
 };
 
 type ByDateRow = {
@@ -49,10 +52,12 @@ type DashboardUserResponse = {
 };
 
 export default function UserDashboardScreen() {
+  const router = useRouter();
   const { user } = useStudy();
   const [data, setData] = useState<DashboardUserResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!user?.id) return;
@@ -102,12 +107,51 @@ export default function UserDashboardScreen() {
       "You haven't taken any quizzes yet. Start a quiz to see your stats!"
     );
   }
+const toggleExpand = (materialId: string) => {
+  setExpanded((prev) => ({
+    ...prev,
+    [materialId]: !prev[materialId],
+  }));
+};
 
   const accuracyTrendData = by_date.map((d) => ({
     date: d.date,
     accuracy: d.avg_accuracy,
   }));
   const today = by_date.length > 0 ? by_date[by_date.length - 1] : null;
+const groupedAttempts =
+  attempts?.reduce((acc: Record<string, AttemptRow[]>, a) => {
+    if (!acc[a.material_id]) {
+      acc[a.material_id] = [];
+    }
+    acc[a.material_id].push(a);
+    return acc;
+  }, {}) || {};
+const getTodayMessage = (accuracy: number, attempts: number) => {
+  if (attempts === 0) {
+    return "No attempts yet today. Start a quick quiz to build momentum.";
+  }
+
+  if (accuracy >= 80) {
+    return `Excellent work! You scored ${accuracy.toFixed(
+      1
+    )}% accuracy today 🎉`;
+  }
+
+  if (accuracy >= 60) {
+    return `Nice progress! You achieved ${accuracy.toFixed(
+      1
+    )}% accuracy today.`;
+  }
+
+  if (accuracy >= 40) {
+    return `You practiced today — accuracy is ${accuracy.toFixed(
+      1
+    )}%. Reviewing mistakes will help improve.`;
+  }
+
+  return `Tough day, but effort matters. Reviewing today’s quiz will help a lot.`;
+};
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -118,90 +162,109 @@ export default function UserDashboardScreen() {
         </Text>
 
         {/* Top summary cards */}
-        <View style={styles.row}>
-          <Card style={styles.cardSmall}>
-            <Text style={styles.cardLabel}>Total Attempts</Text>
-            <Text style={styles.cardValue}>{summary.total_attempts}</Text>
-          </Card>
-          <Card style={styles.cardSmall}>
-            <Text style={styles.cardLabel}>Study Materials</Text>
-            <Text style={styles.cardValue}>{summary.distinct_materials}</Text>
-          </Card>
-        </View>
+<Card style={styles.heroCard}>
+  {/* Title */}
+  <Text style={styles.heroLabel}>Overall Accuracy</Text>
 
-        <View style={styles.row}>
-          <Card style={styles.cardSmall}>
-            <Text style={styles.cardLabel}>Overall Accuracy</Text>
-            <Text style={styles.cardValue}>
-              {summary.overall_accuracy.toFixed(1)}%
-            </Text>
-          </Card>
-          <Card style={styles.cardSmall}>
-            <Text style={styles.cardLabel}>Avg. Accuracy</Text>
-            <Text style={styles.cardValue}>
-              {summary.avg_accuracy.toFixed(1)}%
-            </Text>
-          </Card>
-        </View>
+  {/* Main value row */}
+  <View style={styles.heroValueRow}>
+    <Text style={styles.heroValue}>
+      {summary.overall_accuracy.toFixed(1)}%
+    </Text>
 
-        <View style={styles.row}>
-          <Card style={styles.cardSmall}>
-            <Text style={styles.cardLabel}>Avg. Score</Text>
-            <Text style={styles.cardValue}>{summary.avg_score.toFixed(1)}</Text>
-          </Card>
-          <Card style={styles.cardSmall}>
-            <Text style={styles.cardLabel}>Best Score / Acc.</Text>
-            <Text style={styles.cardValue}>
-              {summary.best_score.toFixed(1)} |{" "}
-              {summary.best_accuracy.toFixed(1)}%
-            </Text>
-          </Card>
-        </View>
+    {/* Change indicator (static or dynamic) */}
+    <View style={styles.heroChange}>
+      <Text style={styles.heroChangeText}>↗ +4.2%</Text>
+    </View>
+  </View>
 
-        {/* Score by Attempt */}
-        {attempts.length > 0 && (
-          <Card style={{ marginTop: 10 }}>
-            <Text style={styles.sectionTitle}>Score by Attempt</Text>
-            <Text style={styles.smallMuted}>
-              Each bar shows score proportion for that attempt.
-            </Text>
+  <Text style={styles.heroSubtext}>vs last week</Text>
 
-            <View style={{ marginTop: 10 }}>
-              {attempts.map((a, idx) => {
-                const answered = a.correct + a.wrong;
-                const effectiveTotal =
-                  answered > 0 ? answered : a.total_questions;
+  {/* Divider */}
+  <View style={styles.heroDivider} />
 
-                const ratio =
-                  effectiveTotal > 0 ? a.correct / effectiveTotal : 0;
+  {/* Bottom stats */}
+  <View style={styles.heroStatsRow}>
+    <View style={styles.heroStat}>
+      <Text style={styles.heroStatLabel}>Best Score</Text>
+      <Text style={styles.heroStatValue}>
+        {summary.best_accuracy.toFixed(0)}%
+      </Text>
+    </View>
 
-                const displayAccuracy = ratio * 100; // percentage
+    <View style={styles.heroStat}>
+      <Text style={styles.heroStatLabel}>Avg Accuracy</Text>
+      <Text style={styles.heroStatValue}>
+        {summary.avg_accuracy.toFixed(1)}%
+      </Text>
+    </View>
 
-                return (
-                  <View
-                    key={`${a.material_id}-${a.attempt_no}-${idx}`}
-                    style={{ marginBottom: 8 }}
-                  >
-                    <View style={styles.attemptHeader}>
-                      <Text style={styles.attemptLabel}>
-                        Attempt #{a.attempt_no} ({a.material_id.slice(0, 6)}…)
-                      </Text>
-                      <Text style={styles.attemptValue}>
-                        {a.correct}/{effectiveTotal} •{" "}
-                        {displayAccuracy.toFixed(1)}%
-                      </Text>
-                    </View>
+    <View style={styles.heroStat}>
+      <Text style={styles.heroStatLabel}>Total Attempts</Text>
+      <Text style={styles.heroStatValue}>
+        {summary.total_attempts}
+      </Text>
+    </View>
+  </View>
+</Card>
+{today && (
+  <Card style={styles.todayCard}>
+    {/* Header: green icon + text */}
+    <View style={styles.todayHeaderRow}>
+      <View style={styles.todayIconCircle}>
+        {/* you can replace this with an icon component if you use one */}
+        <Text style={styles.todayIcon}>↗</Text>
+      </View>
 
-                    <Bar percentage={displayAccuracy} />
-                  </View>
-                );
-              })}
-            </View>
-          </Card>
-        )}
+      <View style={{ flex: 1 }}>
+        <Text style={styles.todayTitle}>Today's Performance</Text>
+<Text
+  style={[
+    styles.todaySubtitle,
+    {
+      color:
+        today.avg_accuracy >= 60
+          ? "#166534"
+          : today.avg_accuracy >= 40
+          ? "#92400E"
+          : "#7F1D1D",
+    },
+  ]}
+>
+  {getTodayMessage(today.avg_accuracy, today.attempts)}
+</Text>
+      </View>
+    </View>
 
-        {/* Daily Performance + Accuracy Trend */}
-        {by_date.length > 0 && (
+    {/* Stats row: two white pills */}
+    <View style={styles.todayStatsRow}>
+      <View style={styles.todayStatPill}>
+        <Text style={styles.todayStatLabel}>Attempts Today</Text>
+        <Text style={styles.todayStatValue}>{today.attempts}</Text>
+      </View>
+
+      <View style={[styles.todayStatPill, { marginLeft: 12 }]}>
+        <Text style={styles.todayStatLabel}>Accuracy</Text>
+        <Text style={styles.todayStatValue}>
+          {today.avg_accuracy.toFixed(1)}%
+        </Text>
+      </View>
+    </View>
+    {/* Action buttons */}
+<View style={styles.todayActionsRow}>
+  <Pressable style={styles.reviewButton} onPress={() => router.push("/dashboard")}>
+    <Text style={styles.reviewButtonText}>Review Quiz</Text>
+  </Pressable>
+
+  <Pressable style={styles.tryAnotherButton} onPress={() => router.push("/quiz")}>
+    <Text style={styles.tryAnotherButtonText}>Try Another</Text>
+  </Pressable>
+</View>
+
+  </Card>
+)}
+
+       {by_date.length > 0 && (
           <>
             <View style={[styles.row, { marginTop: 12 }]}>
               <Card style={styles.cardLarge}>
@@ -229,41 +292,145 @@ export default function UserDashboardScreen() {
           </>
         )}
 
+        {/* Score by Attempt */}
+        {attempts.length > 0 && (
+ <View style={{ marginTop: 12 }}>
+  <Text style={styles.sectionTitle}>Quiz Performance</Text>
+
+  <View style={{ marginTop: 12 }}>
+    {Object.entries(groupedAttempts).map(
+      ([materialId, list]: any) => {
+        const best = Math.max(...list.map((a: AttemptRow) => a.accuracy));
+        const avg =
+          list.reduce((s: number, a: AttemptRow) => s + a.accuracy, 0) /
+          list.length;
+
+        const isOpen = expanded[materialId];
+
+        return (
+          <View
+            key={materialId}
+            style={{
+              backgroundColor: "#FFFFFF",
+              borderRadius: 14,
+              padding: 14,
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: "#E5E7EB",
+            }}
+          >
+            {/* HEADER */}
+            <Pressable
+              onPress={() => toggleExpand(materialId)}
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <View>
+                <Text style={{ fontSize: 14, fontWeight: "700" }}>
+                  Quiz - {list[0].material_name}
+                </Text>
+                <Text style={styles.smallMuted}>
+                  {list.length} attempts
+                </Text>
+              </View>
+<View
+  style={{
+    flexDirection: "row",
+    alignItems: "center",
+  }}
+>
+  <View style={{ alignItems: "flex-end", marginRight: 6 }}>
+    <Text style={{ fontSize: 12 }}>
+      Best: {best.toFixed(0)}%
+    </Text>
+    <Text style={styles.smallMuted}>
+      Avg: {avg.toFixed(1)}%
+    </Text>
+  </View>
+
+<Feather
+  name="chevron-down"
+  size={20}
+  color="#6B7280"
+  style={{
+    transform: [{ rotate: isOpen ? "180deg" : "0deg" }],
+  }}
+/>
+
+</View>
+
+            </Pressable>
+
+            {/* SUMMARY BAR */}
+            <View style={{ marginTop: 10}}>
+              <Bar percentage={avg} barColor="#111827"/>
+            </View>
+
+            {/* EXPANDED ATTEMPTS */}
+            {isOpen && (
+              <View style={{ marginTop: 12 }}>
+                {list.map((a: AttemptRow) => (
+                  <View
+                    key={`${a.material_id}-${a.attempt_no}`}
+                    style={{ marginBottom: 8 }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        marginBottom: 4,
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, color: "#4B5563" }}>
+                        Attempt #{a.attempt_no}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "600",
+                          color:
+                            a.accuracy >= 70
+                              ? "#22C55E"
+                              : a.accuracy >= 40
+                              ? "#F59E0B"
+                              : "#EF4444",
+                        }}
+                      >
+                        {a.correct}/{a.total_questions} •{" "}
+                        {a.accuracy.toFixed(0)}%
+                      </Text>
+                    </View>
+
+                    <Bar
+                      percentage={a.accuracy}
+                      barColor={
+                        a.accuracy >= 70
+                          ? "#22C55E"
+                          : a.accuracy >= 40
+                          ? "#F59E0B"
+                          : "#EF4444"
+                      }
+                    />
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        );
+      }
+    )}
+  </View>
+</View>
+
+        )}
+
+        {/* Daily Performance + Accuracy Trend */}
+ 
         {/* Today's Performance card */}
-{today && (
-  <Card style={styles.todayCard}>
-    {/* Header: green icon + text */}
-    <View style={styles.todayHeaderRow}>
-      <View style={styles.todayIconCircle}>
-        {/* you can replace this with an icon component if you use one */}
-        <Text style={styles.todayIcon}>↗</Text>
-      </View>
 
-      <View style={{ flex: 1 }}>
-        <Text style={styles.todayTitle}>Today's Performance</Text>
-        <Text style={styles.todaySubtitle}>
-          Great job! You achieved {today.avg_accuracy.toFixed(1)}% accuracy
-          with {today.attempts} attempts today.
-        </Text>
-      </View>
-    </View>
-
-    {/* Stats row: two white pills */}
-    <View style={styles.todayStatsRow}>
-      <View style={styles.todayStatPill}>
-        <Text style={styles.todayStatLabel}>Attempts Today</Text>
-        <Text style={styles.todayStatValue}>{today.attempts}</Text>
-      </View>
-
-      <View style={[styles.todayStatPill, { marginLeft: 12 }]}>
-        <Text style={styles.todayStatLabel}>Accuracy</Text>
-        <Text style={styles.todayStatValue}>
-          {today.avg_accuracy.toFixed(1)}%
-        </Text>
-      </View>
-    </View>
-  </Card>
-)}
 
       </ScrollView>
     </SafeAreaView>
@@ -693,5 +860,117 @@ todayStatValue: {
     color: "#111827",
     marginBottom: 1,
     fontWeight: "600",
-  },
+  },heroCard: {
+  marginTop: 12,
+  padding: 16,
+  borderRadius: 16,
+  backgroundColor: "#FFFFFF",
+  shadowColor: "#000",
+  shadowOpacity: 0.05,
+  shadowRadius: 8,
+  elevation: 2,
+},
+
+heroLabel: {
+  fontSize: 13,
+  color: "#6B7280",
+  fontWeight: "500",
+},
+
+heroValueRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginTop: 6,
+},
+
+heroValue: {
+  fontSize: 32,
+  fontWeight: "800",
+  color: "#111827",
+},
+
+heroChange: {
+  marginLeft: 8,
+  backgroundColor: "#ECFDF3",
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 999,
+},
+
+heroChangeText: {
+  fontSize: 12,
+  color: "#16A34A",
+  fontWeight: "600",
+},
+
+heroSubtext: {
+  fontSize: 12,
+  color: "#6B7280",
+  marginTop: 2,
+},
+
+heroDivider: {
+  height: 1,
+  backgroundColor: "#E5E7EB",
+  marginVertical: 14,
+},
+
+heroStatsRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+},
+
+heroStat: {
+  alignItems: "center",
+  flex: 1,
+},
+
+heroStatLabel: {
+  fontSize: 11,
+  color: "#6B7280",
+},
+
+heroStatValue: {
+  fontSize: 16,
+  fontWeight: "700",
+  color: "#111827",
+  marginTop: 2,
+},
+todayActionsRow: {
+  flexDirection: "row",
+  marginTop: 16,
+},
+
+reviewButton: {
+  flex: 1,
+  borderWidth: 1,
+  borderColor: "#22C55E",
+  borderRadius: 10,
+  paddingVertical: 10,
+  alignItems: "center",
+  marginRight: 8,
+  backgroundColor: "#FFFFFF",
+},
+
+reviewButtonText: {
+  color: "#166534",
+  fontWeight: "600",
+  fontSize: 14,
+},
+
+tryAnotherButton: {
+  flex: 1,
+  backgroundColor: "#22C55E",
+  borderRadius: 10,
+  paddingVertical: 10,
+  alignItems: "center",
+  marginLeft: 8,
+},
+
+tryAnotherButtonText: {
+  color: "#FFFFFF",
+  fontWeight: "600",
+  fontSize: 14,
+},
+
 });

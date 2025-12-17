@@ -7,7 +7,7 @@ export const BASE_URL = Platform.select({
   web: "http://127.0.0.1:8000",
  // browser
   // 🔁 replace with your machine IP on Wi-Fi (e.g. 192.168.1.2)
-  default: "http://192.168.1.6:8000", // device / simulator
+  default: "http://192.168.1.7:8000", // device / simulator
 });
 
 export const STUDY_URL = `${BASE_URL}/api/study_material`;

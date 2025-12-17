@@ -1,3 +1,21 @@
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/45739268-fe40-41e2-a2b9-3f336ff8ab40" />
+
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/72828712-f932-4951-860e-778af0296c6a" />
+
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/07b163e1-2717-49e5-af47-241520da963f" />
+
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/335dedec-ec5c-4b47-bca0-e3ac7a30ef10" />
+
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/c6063c2e-91f7-4739-9e8e-82e9f22fb5c0" />
+
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/d63286df-589e-4473-84fb-de19f48653aa" />
+
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/7c6cdf73-c351-462e-8497-67ec219dabf9" />
+
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/2eedf662-8c55-43bd-9f96-664236126c86" />
+
+<img width="540" height="1207" alt="Image" src="https://github.com/user-attachments/assets/e3098fed-16c4-4df9-9dc7-bc6d08dfa435" />
+
 https://github.com/user-attachments/assets/34d7b1e5-a192-44b5-b5ed-18a2d0f12150
 
 # StudyAI — PDF to Smart Study Pack

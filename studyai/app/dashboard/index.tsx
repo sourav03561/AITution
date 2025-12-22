@@ -192,11 +192,7 @@ const pieData = [
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Quiz Dashboard</Text>
-        <Text style={styles.subtitle}>
-          Track your quiz performance and focus on weak areas.
-        </Text>
-
+        <Text style={styles.title}>Track your quiz performance and focus on weak areas.</Text>
         {/* High-level stats */}
 {/* BIG Accuracy Card */}
 <View style={styles.accuracyCard}>
@@ -447,9 +443,10 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
     color: "#111827",
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,

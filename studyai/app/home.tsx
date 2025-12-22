@@ -157,6 +157,30 @@ export default function HomeScreen() {
       Alert.alert("Error", "Failed to load revision quiz.");
     }
   };
+function truncatePdfName(name: string, maxChars = 12) {
+  if (!name) return "";
+
+  // Normalize extension
+  const lower = name.toLowerCase();
+  const hasPdf = lower.endsWith(".pdf");
+
+  // Remove extension
+  const baseName = hasPdf ? name.slice(0, -4) : name;
+
+  // Normalize separators
+  const normalized = baseName
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (normalized.length <= maxChars) {
+    return hasPdf ? `${normalized}.pdf` : normalized;
+  }
+
+  return `${normalized.slice(0, maxChars)}....pdf`;
+}
+
+
 
   /* --------------------------------------------------------
      LOAD USER + DASHBOARD DATA
@@ -379,6 +403,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* QUICK ACTIONS */}
+        {apiData?.material_id && (<>
         <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Quick Actions</Text>
 
         <View style={styles.quickGrid}>
@@ -392,6 +417,7 @@ export default function HomeScreen() {
           <QuickAction icon={BookOpenCheck} label="Mock Test" featureKey="mock-test" onPress={() => router.push("/mock-test")} />
           <QuickAction icon={LayoutDashboard} label="Dashboard" featureKey="dashboard" onPress={() => router.push("/dashboard")} />
         </View>
+        </>)}
 
         {/* RECENT ACTIVITY */}
         {recentAttempts.length > 0 && (
@@ -411,13 +437,13 @@ export default function HomeScreen() {
                   </View>
 
                   <View style={{ marginLeft: 10 }}>
-                    <Text style={styles.recentPdf}>{a.file_name}</Text>
+                    <Text style={styles.recentPdf}> {truncatePdfName(a.file_name)}</Text>
                     <Text style={styles.recentSub}>Quiz Completed</Text>
                   </View>
                 </View>
 
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.recentPercent}>{a.accuracy}%</Text>
+                  <Text style={styles.recentPercent}>{Number(a.accuracy).toFixed(2)}%</Text>
                   <Text style={styles.recentTime}>{timeAgo(a.created_at)}</Text>
                 </View>
               </View>

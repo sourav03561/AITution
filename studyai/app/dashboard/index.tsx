@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { PieChart } from "react-native-chart-kit";
 import { useStudy } from "../../StudyContext";
-
+import { DonutChart } from "./DonutChart";
+import { DonutLegend } from "./DonutLegend";
+import SmallStatCard from "./smallcard";
 type HistoryItem = {
   score: number; // equals "correct" in backend
   wrong: number;
@@ -48,38 +50,45 @@ export default function QuizDashboard() {
   const quiz = apiData.quiz || [];
 
   // --------- Derived Metrics ----------
-  const {
-    totalAttempts,
-    avgScore,
-    avgAccuracy,
-    bestScore,
-    bestBase,
-    lastAttempt,
-    weakestQuestions,
-    commonBase,
-  } = useMemo(() => {
-    const totalAttempts = history.length;
+const {
+  totalAttempts,
+  avgScore,
+  avgAccuracy,
+  bestScore,
+  bestBase,
+  lastAttempt,
+  weakestQuestions,
+  
+  totalCorrect,        // ✅ ADD THIS
+  totalAttempted,      // ✅ ADD THIS
+} = useMemo(() => {
+const totalAttempts = history.length;
+let totalScore = 0;
+let totalAccuracy = 0;
 
-    let totalScore = 0; // sum of "correct" over attempts
-    let totalAccuracy = 0; // sum of per-attempt accuracy
-    let bestScore = 0;
-    let bestBase = 0;
-    let commonBase = 0; // max base used for /X display
+let bestAccuracy = 0;
+let bestScore = 0;
+let bestBase = 0;
+let totalCorrect = 0;
+let totalAttempted = 0;
+history.forEach((h) => {
+  // ✅ answered questions only
+  const base = h.attempted;
 
-    history.forEach((h) => {
-      const base = h.attempted > 0 ? h.attempted : h.total_questions;
-      commonBase = Math.max(commonBase, base);
+  if (base === 0) return;
 
-      totalScore += h.correct;
+  const accuracy = h.correct / base;
+  totalCorrect += h.correct;
+  totalAttempted += h.attempted;
+  totalScore += h.correct;
+  totalAccuracy += accuracy;
 
-      const accuracy = base > 0 ? h.correct / base : 0;
-      totalAccuracy += accuracy;
-
-      if (h.correct > bestScore) {
-        bestScore = h.correct;
-        bestBase = base;
-      }
-    });
+  if (accuracy > bestAccuracy) {
+    bestAccuracy = accuracy;
+    bestScore = h.correct;
+    bestBase = base;
+  }
+});
 
     const avgScore = totalAttempts > 0 ? totalScore / totalAttempts : 0;
     const avgAccuracy = totalAttempts > 0 ? totalAccuracy / totalAttempts : 0;
@@ -137,7 +146,8 @@ export default function QuizDashboard() {
       bestBase,
       lastAttempt,
       weakestQuestions,
-      commonBase,
+        totalCorrect,
+  totalAttempted,
     };
   }, [history, perQuestion, quiz]);
 
@@ -145,38 +155,32 @@ export default function QuizDashboard() {
   const screenWidth = Dimensions.get("window").width;
   const donutSize = Math.min(screenWidth * 0.55, 220);
 
-  const lastBase =
-    lastAttempt && lastAttempt.attempted > 0
-      ? lastAttempt.attempted
-      : lastAttempt?.total_questions ?? 0;
+// Always derive base from last attempt itself
+const lastCorrect = lastAttempt?.correct ?? 0;
+const lastWrong = lastAttempt?.wrong ?? 0;
+const lastSkipped = lastAttempt?.skipped ?? 0;
 
-  const lastCorrect = lastAttempt?.correct ?? 0;
-  const lastWrong = lastAttempt?.wrong ?? 0;
-  const lastSkipped = lastAttempt?.skipped ?? 0;
+// ✅ This is the ONLY correct base for the donut
+const lastBase = lastCorrect + lastWrong + lastSkipped;
 
-  const pieData = [
-    {
-      name: "Correct",
-      population: lastCorrect,
-      color: "#22C55E",
-      legendFontColor: "#111827",
-      legendFontSize: 12,
-    },
-    {
-      name: "Wrong",
-      population: lastWrong,
-      color: "#F97373",
-      legendFontColor: "#111827",
-      legendFontSize: 12,
-    },
-    {
-      name: "Skipped",
-      population: lastSkipped,
-      color: "#FBBF24",
-      legendFontColor: "#111827",
-      legendFontSize: 12,
-    },
-  ].filter((d) => d.population > 0);
+
+const pieData = [
+  {
+    name: "Correct",
+    population: lastCorrect,
+    color: "#22C55E",
+  },
+  {
+    name: "Wrong",
+    population: lastWrong,
+    color: "#F97373",
+  },
+  {
+    name: "Skipped",
+    population: lastSkipped,
+    color: "#FBBF24",
+  },
+].filter(d => d.population > 0);
 
   const chartConfig = {
     backgroundGradientFrom: "#ffffff",
@@ -194,91 +198,67 @@ export default function QuizDashboard() {
         </Text>
 
         {/* High-level stats */}
-        <View style={styles.row}>
-          <SmallCard label="Total Attempts" value={String(totalAttempts)} />
-          <SmallCard
-            label="Best Score"
-            value={`${bestScore} / ${bestBase || commonBase || quiz.length}`}
-          />
-        </View>
+{/* BIG Accuracy Card */}
+<View style={styles.accuracyCard}>
+  <Text style={styles.accuracyLabel}>Accuracy</Text>
+  <Text style={styles.accuracyValue}>
+    {(avgAccuracy * 100).toFixed(0)}%
+  </Text>
+  <Text style={styles.accuracySub}>Overall performance</Text>
+</View>
 
-        <View style={styles.row}>
-          <SmallCard
-            label="Avg. Score"
-            value={`${avgScore.toFixed(1)} / ${
-              commonBase || quiz.length
-            }`}
-          />
-          <SmallCard
-            label="Avg. Accuracy"
-            value={`${(avgAccuracy * 100).toFixed(0)}%`}
-          />
-        </View>
+{/* Row of two cards */}
+<View style={styles.row}>
+  <SmallStatCard
+    label="Best Score"
+    value={`${Math.round((bestScore / (bestBase  || quiz.length)) * 100)}%`}
+  />
+  <SmallStatCard
+    label="Total Attempts"
+    value={String(totalAttempts)}
+  />
+</View>
+
+{/* Single card */}
+<SmallStatCard
+  label="Avg. Accuracy"
+  value={`${totalCorrect} / ${totalAttempted}`}
+/>
+
+
+
+
 
         {/* Last Attempt – Donut chart */}
         {lastAttempt && (
-          <Card style={{ marginTop: 8 }}>
-            <Text style={styles.sectionTitle}>Last Attempt</Text>
-            <Text style={styles.smallMuted}>
-              Attempt #{lastAttempt.attempt_no ?? history.length}
-              {lastAttempt.created_at
-                ? ` • ${lastAttempt.created_at}`
-                : ""}
-            </Text>
+<View style={styles.donutContainer}>
+  <View style={styles.breakdownHeader}>
+  <Text style={styles.breakdownTitle}>Performance Breakdown</Text>
+  <Text style={styles.breakdownSubtitle}>Your last attempt results</Text>
+</View>
 
-            <View style={styles.donutRow}>
-              <View
-                style={[
-                  styles.donutWrapper,
-                  { width: donutSize, height: donutSize },
-                ]}
-              >
-                <PieChart
-                  data={pieData}
-                  width={donutSize}
-                  height={donutSize}
-                  accessor="population"
-                  backgroundColor="transparent"
-                  center={[0, 0]}
-                  paddingLeft="50"
-                  hasLegend={false}
-                  chartConfig={chartConfig}
-                />
 
-                {/* inner white circle */}
-                <View
-                  style={[
-                    styles.donutCenter,
-                    {
-                      width: donutSize * 0.55,
-                      height: donutSize * 0.55,
-                      borderRadius: (donutSize * 0.55) / 2,
-                    },
-                  ]}
-                >
-                  <Text style={styles.donutCenterValue}>{lastCorrect}</Text>
-                  <Text style={styles.donutCenterLabel}>Correct</Text>
-                </View>
-              </View>
+  <DonutChart
+    size={donutSize}
+    correct={lastCorrect}
+    wrong={lastWrong}
+    skipped={lastSkipped}
+  />
 
-              {/* Legend on right */}
-              <View style={styles.donutLegend}>
-                <LegendRow
-                  color="#22C55E"
-                  label="Correct"
-                  value={lastCorrect}
-                />
-                <LegendRow color="#F97373" label="Wrong" value={lastWrong} />
-                <LegendRow
-                  color="#FBBF24"
-                  label="Skipped"
-                  value={lastSkipped}
-                />
-                <LegendRow color="#9CA3AF" label="Total" value={lastBase} />
-              </View>
-            </View>
-          </Card>
-        )}
+  {/* Legend must stretch */}
+  <View style={styles.legendContainer}>
+<DonutLegend
+  correct={lastCorrect}
+  wrong={lastWrong}
+  skipped={lastSkipped}
+  base={lastBase}
+/>
+
+  </View>
+</View>
+
+
+ )}
 
         {/* Score by Attempt */}
         <Card style={{ marginTop: 8 }}>
@@ -656,5 +636,91 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#6B7280",
   },
+donutContainer: {
+  alignItems: "center",
+  marginTop: 16,
+  backgroundColor: "white",
+  borderRadius: 16,
+},
+
+legendContainer: {
+  width: "100%",        // 🔥 THIS FIXES THE ISSUE
+  marginTop: 12,
+  paddingHorizontal: 24,
+},
+accuracyCard: {
+  backgroundColor: "#FFFFFF",
+  borderRadius: 20,
+  padding: 20,
+  marginBottom: 12,
+  borderWidth: 1,
+  borderColor: "#DCFCE7", // subtle green
+  shadowColor: "#22C55E",
+  shadowOpacity: 0.12,
+  shadowRadius: 10,
+  elevation: 3,
+},
+
+accuracyLabel: {
+  fontSize: 13,
+  color: "#6B7280",
+},
+
+accuracyValue: {
+  fontSize: 34,
+  fontWeight: "800",
+  color: "#F97316", // orange like screenshot
+  marginVertical: 4,
+},
+
+accuracySub: {
+  fontSize: 12,
+  color: "#6B7280",
+},
+
+row: {
+  flexDirection: "row",
+  gap: 10,
+  marginBottom: 10,
+},
+
+sectionHeader: {
+  marginBottom: 12,
+},
+
+sectionTitle1: {
+  fontSize: 16,
+  fontWeight: "600",
+  color: "#111827",
+  textAlign: "left",
+},
+
+sectionSubtitle: {
+  fontSize: 12,
+  color: "#6B7280",
+  marginTop: 2,
+  textAlign: "left",
+},
+breakdownHeader: {
+  width: "100%",          // 🔥 THIS FIXES IT
+  marginBottom: 12,
+  marginTop: 8,
+  paddingLeft:15,
+},
+
+breakdownTitle: {
+  fontSize: 16,
+  fontWeight: "600",
+  color: "#111827",
+  textAlign: "left",
+},
+
+breakdownSubtitle: {
+  fontSize: 12,
+  color: "#6B7280",
+  marginTop: 2,
+  textAlign: "left",
+},
+
 });
 

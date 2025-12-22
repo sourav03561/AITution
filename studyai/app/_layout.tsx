@@ -42,12 +42,8 @@ export default function RootLayout() {
         <Stack.Screen name="videos" options={{ title: "Recommended Videos" }} />
         <Stack.Screen name="mindmap" options={{ title: "Mind Map" }} />
         <Stack.Screen name="mock-test" options={{ title: "Mock Test" }} />
-    <Stack.Screen
-      name="user-dashboard/index"
-      options={{
-        title: "My Dashboard",
-      }}
-    />
+        <Stack.Screen name="user-dashboard/index" options={{title: "My Dashboard",}}/>
+        <Stack.Screen name="dashboard/index" options={{title: "quiz Dashboard",}}/>
      </Stack>
     </StudyProvider>
   );
